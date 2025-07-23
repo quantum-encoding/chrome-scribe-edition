@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header-visual">
+      <img src="images/cosmic-spiral.png" class="cosmic-spiral" alt="Cosmic Spiral">
+      <div class="header-text">
+        <h1>AI Chronicle</h1>
+        <p class="subtitle">The Scribe for your conversations</p>
+      </div>
+      <img src="images/cosmic-duck.webp" class="cosmic-duck" alt="Cosmic Duck">
+    </div>
+    
+    <div class="status" id="status">
+      <span class="status-icon">🔍</span>
+      <span id="status-text">Ready to scrape</span>
+    </div>
+
+    <div class="script-selector">
+      <label>Select Platform:</label>
+      <select id="scriptSelect">
+        <option value="gemini">Google AI Studio (Gemini)</option>
+        <option value="gpt" disabled>ChatGPT [Coming Soon]</option>
+        <option value="claude" disabled>Claude [Coming Soon]</option>
+      </select>
+    </div>
+
+    <div class="controls">
+      <button id="scrapeBtn" class="btn btn-primary">
+        <span class="btn-icon">🌊</span>
+        Scrape Conversation
+      </button>
+      
+      <button id="autoScrollBtn" class="btn btn-secondary">
+        <span class="btn-icon">📜</span>
+        Auto-Scroll & Scrape
+      </button>
+      
+      <button id="debugBtn" class="btn btn-secondary" style="background: #333;">
+        <span class="btn-icon">🔧</span>
+        Debug DOM
+      </button>
+    </div>
+
+    <div class="format-section">
+      <label>Export Format:</label>
+      <div class="format-options">
+        <label>
+          <input type="radio" name="format" value="md" checked>
+          Markdown
+        </label>
+        <label>
+          <input type="radio" name="format" value="json">
+          JSON
+        </label>
+        <label>
+          <input type="radio" name="format" value="txt">
+          Plain Text
+        </label>
+      </div>
+    </div>
+
+    <div class="results" id="results" style="display: none;">
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Messages:</span>
+          <span id="messageCount">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Characters:</span>
+          <span id="charCount">0</span>
+        </div>
+      </div>
+      
+      <div class="export-controls">
+        <button id="copyBtn" class="btn btn-small">
+          📋 Copy
+        </button>
+        <button id="downloadBtn" class="btn btn-small">
+          💾 Download
+        </button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="company-info">
+        <p class="company-name">QUANTUM ENCODING LTD</p>
+        <p class="company-links">
+          <a href="https://www.quantumencoding.io" target="_blank">www.quantumencoding.io</a>
+          <span class="separator">|</span>
+          <a href="mailto:info@quantumencoding.io">info@quantumencoding.io</a>
+        </p>
+      </div>
+      <small>AI Workflow Services 🦆</small>
+    </div>
+  </div>
+  <script src="scripts/popup.js"></script>
+</body>
+</html>
