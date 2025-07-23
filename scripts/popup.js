@@ -97,10 +97,13 @@ async function scrapeConversation(autoScroll = false) {
         args: [format]
       });
       
-      // Now inject and execute the gemini scraper
+      // Now inject and execute the appropriate scraper
+      const scraperFile = autoScroll ? 'scripts/gemini-turbo-scraper.js' : 'scripts/gemini-dom-scraper.js';
+      console.log(`Using scraper: ${scraperFile}`);
+      
       const [result] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['scripts/gemini-dom-scraper.js']
+        files: [scraperFile]
       });
       
       // The scraper will return the data
