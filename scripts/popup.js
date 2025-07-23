@@ -13,6 +13,7 @@ const scriptSelectEl = document.getElementById('scriptSelect');
 // Buttons
 const scrapeBtn = document.getElementById('scrapeBtn');
 const autoScrollBtn = document.getElementById('autoScrollBtn');
+const universalBtn = document.getElementById('universalBtn');
 const debugBtn = document.getElementById('debugBtn');
 const copyBtn = document.getElementById('copyBtn');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -190,6 +191,43 @@ function downloadFile() {
   updateStatus('Downloaded successfully!', 'success');
 }
 
+// Universal capture - works on any page
+async function universalCapture() {
+  updateStatus('Starting universal capture...', 'scraping');
+  universalBtn.disabled = true;
+  
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    // Get the selected format
+    const format = document.querySelector('input[name="format"]:checked').value;
+    
+    // Inject format variable
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (selectedFormat) => {
+        window.__AI_CHRONICLE_FORMAT__ = selectedFormat;
+      },
+      args: [format]
+    });
+    
+    // Execute universal scraper
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['scripts/universal-turbo-scraper.js']
+    });
+    
+    updateStatus('Universal capture complete! Check downloads.', 'success');
+    resultsEl.style.display = 'none';
+    
+  } catch (error) {
+    console.error('Universal capture error:', error);
+    updateStatus('Failed to capture page content', 'error');
+  } finally {
+    universalBtn.disabled = false;
+  }
+}
+
 // Debug DOM structure
 async function debugDOM() {
   updateStatus('Analyzing DOM structure...', 'scraping');
@@ -212,6 +250,7 @@ async function debugDOM() {
 // Event listeners
 scrapeBtn.addEventListener('click', () => scrapeConversation(false));
 autoScrollBtn.addEventListener('click', () => scrapeConversation(true));
+universalBtn.addEventListener('click', universalCapture);
 debugBtn.addEventListener('click', debugDOM);
 copyBtn.addEventListener('click', copyToClipboard);
 downloadBtn.addEventListener('click', downloadFile);

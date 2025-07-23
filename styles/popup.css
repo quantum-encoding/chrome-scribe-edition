@@ -59,6 +59,51 @@ body::before {
   position: relative;
 }
 
+/* Company header - prominent branding */
+.company-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 20px 16px;
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+  position: relative;
+  overflow: hidden;
+}
+
+.company-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(160, 135, 116, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.company-branding {
+  position: relative;
+}
+
+.company-header .company-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0 0 8px 0;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.tagline {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 /* Header with new branding */
 .header-visual {
   display: flex;
@@ -415,6 +460,27 @@ h1 {
 /* Subtle glow effect */
 .glow-subtle {
   box-shadow: 0 0 20px rgba(160, 135, 116, 0.1);
+}
+
+/* Debug section */
+.debug-section {
+  margin-top: 16px;
+  text-align: center;
+}
+
+/* Ghost button for debug */
+.btn-ghost {
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid transparent;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.btn-ghost:hover {
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--border);
 }
 
 /* Smooth transitions */

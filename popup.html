@@ -6,6 +6,13 @@
 </head>
 <body>
   <div class="container">
+    <div class="company-header">
+      <div class="company-branding">
+        <p class="company-name">QUANTUM ENCODING LTD</p>
+        <p class="tagline">AI WORKFLOW SERVICES</p>
+      </div>
+    </div>
+
     <div class="header-visual">
       <img src="images/white-feather.png" class="white-feather" alt="The Scribe">
       <div class="header-text">
@@ -13,11 +20,6 @@
         <p class="subtitle">The Scribe for your conversations</p>
       </div>
       <img src="images/white-feather.png" class="white-feather" alt="The Scribe">
-    </div>
-    
-    <div class="status" id="status">
-      <span class="status-icon">🔍</span>
-      <span id="status-text">Ready to scrape</span>
     </div>
 
     <div class="script-selector">
@@ -40,7 +42,19 @@
         Auto-Scroll & Scrape
       </button>
       
-      <button id="debugBtn" class="btn btn-secondary" style="background: #333;">
+      <button id="universalBtn" class="btn btn-secondary" style="background: #333;">
+        <span class="btn-icon">🌐</span>
+        Universal Turbo Capture
+      </button>
+    </div>
+
+    <div class="status" id="status">
+      <span class="status-icon">🔍</span>
+      <span id="status-text">Ready to scrape</span>
+    </div>
+
+    <div class="debug-section">
+      <button id="debugBtn" class="btn btn-small btn-ghost">
         <span class="btn-icon">🔧</span>
         Debug DOM
       </button>
@@ -87,15 +101,11 @@
     </div>
 
     <div class="footer">
-      <div class="company-info">
-        <p class="company-name">QUANTUM ENCODING LTD</p>
-        <p class="company-links">
-          <a href="https://www.quantumencoding.io" target="_blank">www.quantumencoding.io</a>
-          <span class="separator">|</span>
-          <a href="mailto:info@quantumencoding.io">info@quantumencoding.io</a>
-        </p>
-      </div>
-      <small>AI Workflow Services</small>
+      <p class="company-links">
+        <a href="https://www.quantumencoding.io" target="_blank">www.quantumencoding.io</a>
+        <span class="separator">|</span>
+        <a href="mailto:info@quantumencoding.io">info@quantumencoding.io</a>
+      </p>
     </div>
   </div>
   <script src="scripts/popup.js"></script>
