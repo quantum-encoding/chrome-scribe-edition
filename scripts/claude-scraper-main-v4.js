@@ -1,4 +1,4 @@
-// Claude Main Scraper - Downloads conversation + all artifacts
+// Claude Main Scraper V4 - Fixed version using exact V3 approach
 // Used by the extension popup button
 
 (async function() {
@@ -17,8 +17,8 @@
         dropdownButtonSelector: 'button[id^="radix-"]',
         waitTimes: {
             artifactPanel: 1500,
-            dropdown: 800,
-            download: 300,
+            dropdown: 1000,
+            download: 1000,
             betweenArtifacts: 500
         }
     };
@@ -109,167 +109,16 @@
         return messages;
     }
     
-    // Download all artifacts using the list approach
-    async function downloadAllArtifactsFromList() {
-        console.log('  Looking for artifact list...');
-        
-        // Find the button that opens the artifact list
-        let listButton = null;
-        const buttons = document.querySelectorAll('button[id^="radix-"]');
-        
-        for (const btn of buttons) {
-            const svg = btn.querySelector('svg');
-            if (svg) {
-                const path = btn.querySelector('svg path');
-                if (path) {
-                    const d = path.getAttribute('d') || '';
-                    // Check for the specific SVG path that indicates the list button
-                    if (d.includes('M4.25 14.25') || d.includes('M8 4v8m4-4H4')) {
-                        listButton = btn;
-                        console.log(`  Found list button: ${btn.id}`);
-                        break;
-                    }
-                }
-            }
-        }
-        
-        if (!listButton) {
-            console.log('  No artifact list button found');
-            return [];
-        }
-        
-        // Click to open list
-        listButton.click();
-        console.log('  Clicked list button, waiting for dropdown...');
-        await wait(1500);
-        
-        // Find list container - it appears as a dropdown after clicking
-        let listContainer = null;
-        
-        // Look for the dropdown that appeared
-        // The dropdown usually appears as one of the last body > div elements
-        const bodyDivs = document.querySelectorAll('body > div');
-        
-        // Check the last few divs for the dropdown
-        for (let i = Math.max(0, bodyDivs.length - 5); i < bodyDivs.length; i++) {
-            const div = bodyDivs[i];
-            // Check if it has list items
-            const listItems = div.querySelectorAll('li');
-            if (listItems.length > 0) {
-                // Check if this looks like an artifact list
-                const hasArtifactStructure = Array.from(listItems).some(li => {
-                    const text = li.textContent || '';
-                    // Artifact list items typically have file extensions or code-like names
-                    return text.includes('.') || text.includes('_') || li.querySelector('span');
-                });
-                if (hasArtifactStructure) {
-                    listContainer = div;
-                    console.log(`  Found list container with ${listItems.length} items`);
-                    break;
-                }
-            }
-        }
-        
-        // Also check radix containers
-        if (!listContainer) {
-            const containers = document.querySelectorAll('[id^="radix-"][id$="_"]');
-            for (const container of containers) {
-                const listItems = container.querySelectorAll('li');
-                if (listItems.length > 0) {
-                    listContainer = container;
-                    console.log(`  Found radix list container: ${container.id} with ${listItems.length} items`);
-                    break;
-                }
-            }
-        }
-        
-        if (!listContainer) {
-            console.log('  No artifact list found after waiting');
-            // Close by clicking outside
-            document.body.click();
-            await wait(500);
-            return [];
-        }
-        
-        const listItems = listContainer.querySelectorAll('li');
-        console.log(`  Found ${listItems.length} artifacts in list`);
-        
-        const downloadedFiles = [];
-        
-        // Process each artifact
-        for (let i = 0; i < listItems.length; i++) {
-            const item = listItems[i];
-            console.log(`  📦 Artifact ${i + 1}/${listItems.length}`);
-            
-            // Click artifact to open it
-            item.click();
-            await wait(1500);
-            
-            // Find download dropdown in the panel
-            const dropdownBtn = findDownloadDropdown();
-            
-            if (dropdownBtn) {
-                // Click dropdown
-                dropdownBtn.click();
-                await wait(800);
-                
-                // Find and click download link
-                const downloadLink = Array.from(document.querySelectorAll('a')).find(a => 
-                    a.textContent?.includes('Download as')
-                );
-                
-                if (downloadLink) {
-                    const filename = downloadLink.getAttribute('download') || `artifact_${i + 1}`;
-                    console.log(`    ✅ Downloading: ${filename}`);
-                    downloadLink.click();
-                    downloadedFiles.push(filename);
-                    await wait(500);
-                } else {
-                    console.log('    ❌ Download link not found');
-                }
-                
-                // Close dropdown
-                document.body.click();
-                await wait(500);
-            } else {
-                console.log('    ❌ Download dropdown not found');
-            }
-        }
-        
-        // Close list
-        document.body.click();
-        await wait(500);
-        
-        return downloadedFiles;
-    }
-    
-    // Helper to find download dropdown button in artifact panel
-    function findDownloadDropdown() {
-        const buttons = document.querySelectorAll('button');
-        for (const btn of buttons) {
-            const path = btn.querySelector('svg path');
-            if (path) {
-                const d = path.getAttribute('d') || '';
-                if (d.startsWith('M14.128 7.16482')) {
-                    return btn;
-                }
-            }
-        }
-        return null;
-    }
-    
-    // Download artifacts using individual preview buttons (V3 approach)
-    async function downloadArtifactsFromButtons() {
+    // Process artifacts using exact V3 approach
+    async function processArtifacts() {
         console.log('📋 Looking for artifacts in conversation...');
         
+        // Find all artifact preview buttons
         const artifactButtons = document.querySelectorAll('button[aria-label="Preview contents"]');
         console.log(`Found ${artifactButtons.length} artifact buttons`);
         
-        if (artifactButtons.length === 0) {
-            return [];
-        }
-        
-        const downloadedFiles = [];
+        const artifactsList = [];
+        let downloadCount = 0;
         
         // Process each artifact
         for (let i = 0; i < artifactButtons.length; i++) {
@@ -280,8 +129,9 @@
             await wait(1500);
             
             // Find the dropdown arrow button next to the copy button
+            // Look for a button that contains an SVG and is in a radix component
             const panel = document.querySelector('div[class*="md:basis-0"]') || 
-                         document.querySelector('[class*="basis-0"]');
+                         document.evaluate('/html/body/div[4]/div[2]/div/div[3]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             
             if (!panel) {
                 console.log('  ❌ Artifact panel not found');
@@ -319,19 +169,59 @@
             dropdownButton.click();
             console.log('  Clicked dropdown arrow');
             
-            // Wait for menu to appear
+            // Wait longer for menu to appear
             await wait(1000);
             
-            // Simple approach: just look for all links and find the download one
-            let downloadLink = null;
-            const allLinks = document.querySelectorAll('a');
+            // Now look for the Radix menu that appeared
+            // Try multiple selectors to find the menu
+            let radixMenus = document.querySelectorAll('[id^="radix-"]:has(a)');
             
-            for (const link of allLinks) {
-                const text = link.textContent || '';
-                if (text.includes('Download as')) {
-                    downloadLink = link;
-                    console.log(`  ✅ Found download link: "${text}"`);
-                    break;
+            // If :has is not supported, use alternative
+            if (radixMenus.length === 0) {
+                radixMenus = [];
+                const allRadix = document.querySelectorAll('[id^="radix-"]');
+                for (const elem of allRadix) {
+                    if (elem.querySelector('a')) {
+                        radixMenus.push(elem);
+                    }
+                }
+            }
+            
+            let downloadLink = null;
+            
+            for (const menu of radixMenus) {
+                const links = menu.querySelectorAll('a');
+                for (const link of links) {
+                    const text = link.textContent || '';
+                    const href = link.getAttribute('href') || '';
+                    const downloadAttr = link.getAttribute('download') || '';
+                    
+                    // Check if this is a download link
+                    // Look for "Download as" text OR blob URLs with download attribute
+                    if (text.includes('Download as') || 
+                        (href.includes('blob:') && downloadAttr)) {
+                        downloadLink = link;
+                        console.log(`  ✅ Found download link: "${text}"`);
+                        break;
+                    }
+                }
+                if (downloadLink) break;
+            }
+            
+            // Alternative: Look for any new links that appeared
+            if (!downloadLink) {
+                // Try a broader search for download links
+                const allLinks = document.querySelectorAll('a');
+                for (const link of allLinks) {
+                    const text = link.textContent || '';
+                    const href = link.getAttribute('href') || '';
+                    // Look for "Download as" text pattern or blob URLs
+                    if (text.includes('Download as') || 
+                        (href.includes('blob:') && link.hasAttribute('download'))) {
+                        downloadLink = link;
+                        console.log(`  ✅ Found download link (alt method): "${text}"`);
+                        break;
+                    }
                 }
             }
             
@@ -358,18 +248,26 @@
                 const filename = downloadLink.getAttribute('download') || `artifact_${i + 1}`;
                 const fileType = downloadLink.textContent.match(/Download as (\w+)/)?.[1] || 'unknown';
                 
+                artifactsList.push({
+                    index: i + 1,
+                    filename: filename,
+                    type: fileType,
+                    downloaded: true
+                });
+                
                 // Click the download link
                 downloadLink.click();
-                downloadedFiles.push(filename);
+                downloadCount++;
                 console.log('  📥 Download triggered!');
                 await wait(1000);
             } else {
                 console.log('  ❌ No download link found');
                 
-                // Debug info
-                console.log('  Debug - Radix menus found:', radixMenus.length);
-                radixMenus.forEach((menu, idx) => {
-                    console.log(`    Menu ${idx}: ${menu.id}, links: ${menu.querySelectorAll('a').length}`);
+                artifactsList.push({
+                    index: i + 1,
+                    filename: `artifact_${i + 1}`,
+                    type: 'unknown',
+                    downloaded: false
                 });
             }
             
@@ -384,25 +282,26 @@
             await wait(500);
         }
         
-        return downloadedFiles;
+        return { downloadCount, artifactsList };
     }
     
     // Create markdown content
-    function createMarkdown(name, messages, artifacts) {
+    function createMarkdown(name, messages, artifactData) {
         const lines = [
             `# ${name}`,
             '',
             `> **URL:** ${window.location.href}`,
             `> **Exported:** ${new Date().toLocaleString()}`,
             `> **Messages:** ${messages.length}`,
-            `> **Artifacts:** ${artifacts.length}`,
+            `> **Artifacts:** ${artifactData.artifactsList.length}`,
             ''
         ];
         
-        if (artifacts.length > 0) {
+        if (artifactData.artifactsList.length > 0) {
             lines.push('## Downloaded Artifacts', '');
-            artifacts.forEach((file, i) => {
-                lines.push(`${i + 1}. \`${file}\``);
+            artifactData.artifactsList.forEach((artifact) => {
+                const status = artifact.downloaded ? '✅' : '❌';
+                lines.push(`${artifact.index}. ${status} **${artifact.filename}** (${artifact.type})`);
             });
             lines.push('');
         }
@@ -452,39 +351,11 @@
         
         // Step 2: Download artifacts
         console.log('\n📥 Downloading artifacts...');
-        
-        let downloadedArtifacts = [];
-        
-        // First try to find artifact preview buttons (most common)
-        const artifactButtons = document.querySelectorAll('button[aria-label="Preview contents"]');
-        
-        if (artifactButtons.length > 0) {
-            // Use the V3 approach that's proven to work
-            downloadedArtifacts = await downloadArtifactsFromButtons();
-        } else {
-            // Check if there's an artifact list button
-            const hasArtifactList = document.querySelector('button[id*="1ge"]') || 
-                                   Array.from(document.querySelectorAll('button')).find(btn => {
-                                       const path = btn.querySelector('svg path');
-                                       if (path) {
-                                           const d = path.getAttribute('d') || '';
-                                           return d.includes('M4.25 14.25') || d.includes('M8 4v8m4-4H4');
-                                       }
-                                       return false;
-                                   });
-            
-            if (hasArtifactList) {
-                // Use list-based approach
-                console.log('Found artifact list button, using list approach...');
-                downloadedArtifacts = await downloadAllArtifactsFromList();
-            } else {
-                console.log('No artifacts found in conversation');
-            }
-        }
+        const artifactData = await processArtifacts();
         
         // Step 3: Create and download markdown
         console.log('\n📄 Creating markdown file...');
-        const markdown = createMarkdown(conversationName, messages, downloadedArtifacts);
+        const markdown = createMarkdown(conversationName, messages, artifactData);
         const filename = sanitizeFilename(conversationName) + '.md';
         downloadFile(markdown, filename);
         
@@ -493,22 +364,15 @@
         console.log('✅ Download Complete!');
         console.log(`   Conversation: ${filename}`);
         console.log(`   Messages: ${messages.length}`);
-        console.log(`   Artifacts downloaded: ${downloadedArtifacts.length}`);
+        console.log(`   Artifacts downloaded: ${artifactData.downloadCount}/${artifactData.artifactsList.length}`);
         console.log('\n💡 Check your downloads folder');
-        
-        if (downloadedArtifacts.length > 0) {
-            console.log('\nDownloaded artifacts:');
-            downloadedArtifacts.forEach((file, i) => {
-                console.log(`  ${i + 1}. ${file}`);
-            });
-        }
         
         // Return result for extension
         return {
             success: true,
             filename: filename,
             messages: messages.length,
-            artifacts: downloadedArtifacts.length
+            artifacts: artifactData.downloadCount
         };
         
     } catch (error) {
