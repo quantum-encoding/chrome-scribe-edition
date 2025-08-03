@@ -111,6 +111,48 @@ async function scrapeConversation(autoScroll = false) {
       updateStatus('Capture complete! Check your downloads folder.', 'success');
       resultsEl.style.display = 'none';
       
+    } else if (tab.url.includes('claude.ai') && selectedScript === 'claude') {
+      if (autoScroll) {
+        // Use Claude auto-capture for multiple conversations
+        updateStatus('Starting Claude auto-capture...', 'scraping');
+        
+        const [result] = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['scripts/claude-auto-capture.js']
+        });
+        
+        updateStatus('Auto-capture started! Check new tabs.', 'success');
+        resultsEl.style.display = 'none';
+      } else {
+        // Use Claude scraper with ZIP support for single conversation
+        updateStatus('Using Claude ZIP scraper...', 'scraping');
+        
+        // Get the selected format
+        const format = document.querySelector('input[name="format"]:checked').value;
+        
+        // First inject the script, then send a message with the format
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: (selectedFormat) => {
+            window.__AI_CHRONICLE_FORMAT__ = selectedFormat;
+          },
+          args: [format]
+        });
+        
+        // Now inject and execute the Claude scraper v3
+        const scraperFile = 'scripts/claude-scraper-v3.js';
+        console.log(`Using scraper: ${scraperFile}`);
+        
+        const [result] = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: [scraperFile]
+        });
+        
+        // Claude ZIP scraper auto-downloads, so just show success
+        updateStatus('Capture complete! Check your downloads for ZIP file.', 'success');
+        resultsEl.style.display = 'none';
+      }
+      
     } else if (tab.url.includes('aistudio.google.com') && selectedScript === 'gemini') {
       // Use the Gemini DOM scraper for Google AI Studio
       updateStatus('Using Gemini DOM scraper...', 'scraping');
@@ -293,16 +335,16 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     scriptSelectEl.value = 'gemini';
     scrapeBtn.disabled = false;
     autoScrollBtn.disabled = false;
-  } else if (url.includes('chat.openai.com')) {
-    scriptSelectEl.value = 'gpt';
-    updateStatus('ChatGPT support coming soon', 'error');
-    scrapeBtn.disabled = true;
-    autoScrollBtn.disabled = true;
+  } else if (url.includes('chat.openai.com') || url.includes('chatgpt.com')) {
+    scriptSelectEl.value = 'chatgpt';
+    updateStatus('Ready to scrape ChatGPT', 'normal');
+    scrapeBtn.disabled = false;
+    autoScrollBtn.disabled = false;
   } else if (url.includes('claude.ai')) {
     scriptSelectEl.value = 'claude';
-    updateStatus('Claude support coming soon', 'error');
-    scrapeBtn.disabled = true;
-    autoScrollBtn.disabled = true;
+    updateStatus('Ready to scrape Claude', 'normal');
+    scrapeBtn.disabled = false;
+    autoScrollBtn.disabled = false;
   } else {
     updateStatus('Navigate to an AI chat to scrape', 'error');
     scrapeBtn.disabled = true;
@@ -313,15 +355,19 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 // Handle script selection changes
 scriptSelectEl.addEventListener('change', () => {
   const selectedScript = scriptSelectEl.value;
-  if (selectedScript === 'gpt' || selectedScript === 'claude') {
-    updateStatus(`${selectedScript.toUpperCase()} support coming soon`, 'error');
-    scrapeBtn.disabled = true;
-    autoScrollBtn.disabled = true;
-  } else {
+  if (selectedScript) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = tabs[0].url;
       if (url.includes('aistudio.google.com') && selectedScript === 'gemini') {
         updateStatus('Ready to scrape', 'normal');
+        scrapeBtn.disabled = false;
+        autoScrollBtn.disabled = false;
+      } else if ((url.includes('chat.openai.com') || url.includes('chatgpt.com')) && selectedScript === 'chatgpt') {
+        updateStatus('Ready to scrape ChatGPT', 'normal');
+        scrapeBtn.disabled = false;
+        autoScrollBtn.disabled = false;
+      } else if (url.includes('claude.ai') && selectedScript === 'claude') {
+        updateStatus('Ready to scrape Claude', 'normal');
         scrapeBtn.disabled = false;
         autoScrollBtn.disabled = false;
       }
