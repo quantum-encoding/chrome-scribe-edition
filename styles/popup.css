@@ -104,6 +104,22 @@ body::before {
   text-transform: uppercase;
 }
 
+.website {
+  font-size: 14px;
+  margin: 8px 0 0 0;
+}
+
+.website a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.website a:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+}
+
 /* Header with new branding */
 .header-visual {
   display: flex;

@@ -81,8 +81,37 @@ async function scrapeConversation(autoScroll = false) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const selectedScript = scriptSelectEl.value;
     
-    // Check if this is Google AI Studio and Gemini is selected
-    if (tab.url.includes('aistudio.google.com') && selectedScript === 'gemini') {
+    // Check platform and script selection
+    if (tab.url.includes('chatgpt.com') && selectedScript === 'chatgpt') {
+      // Use ChatGPT scrapers
+      updateStatus('Using ChatGPT scraper...', 'scraping');
+      
+      // Get the selected format
+      const format = document.querySelector('input[name="format"]:checked').value;
+      
+      // First inject the script, then send a message with the format
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: (selectedFormat) => {
+          window.__AI_CHRONICLE_FORMAT__ = selectedFormat;
+        },
+        args: [format]
+      });
+      
+      // Now inject and execute the appropriate scraper
+      const scraperFile = autoScroll ? 'scripts/chatgpt-auto-capture.js' : 'scripts/chatgpt-scraper-enhanced.js';
+      console.log(`Using scraper: ${scraperFile}`);
+      
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: [scraperFile]
+      });
+      
+      // ChatGPT scrapers auto-download, so just show success
+      updateStatus('Capture complete! Check your downloads folder.', 'success');
+      resultsEl.style.display = 'none';
+      
+    } else if (tab.url.includes('aistudio.google.com') && selectedScript === 'gemini') {
       // Use the Gemini DOM scraper for Google AI Studio
       updateStatus('Using Gemini DOM scraper...', 'scraping');
       
