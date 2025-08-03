@@ -1,7 +1,8 @@
 // Claude Auto-Capture Script for Extension
-// This script automates capturing all Claude conversations
+// This script automates capturing all Claude conversations with artifacts
+// Works with the extension to download each conversation automatically
 
-(function() {
+(async function() {
     'use strict';
     
     console.log('🚀 Claude Auto-Capture Starting...');
@@ -104,26 +105,23 @@
         return links;
     }
     
-    // Step 5: Process conversations by opening in new tabs
+    // Step 5: Process conversations sequentially  
     async function processConversations() {
         console.log(`\n🎯 Starting capture of ${conversationLinks.length} conversations...`);
         
-        // Save conversation list to localStorage for tracking
-        const captureSession = {
-            total: conversationLinks.length,
-            completed: 0,
-            conversations: conversationLinks.map(c => ({
-                url: c.url,
-                title: c.title,
-                status: 'pending'
-            })),
+        // Save state to sessionStorage for persistence across page loads
+        const captureState = {
+            conversations: conversationLinks,
+            currentIndex: 0,
+            results: [],
             startTime: new Date().toISOString()
         };
         
-        localStorage.setItem('claude_auto_capture_session', JSON.stringify(captureSession));
+        sessionStorage.setItem('claudeAutoCapture', JSON.stringify(captureState));
         
         // Create status display
         const statusDiv = document.createElement('div');
+        statusDiv.id = 'claude-auto-capture-status';
         statusDiv.style.cssText = `
             position: fixed;
             top: 20px;
@@ -139,86 +137,113 @@
         `;
         statusDiv.innerHTML = `
             <h3 style="margin: 0 0 10px 0;">🤖 Claude Auto-Capture</h3>
-            <div id="capture-progress">Preparing...</div>
+            <div id="capture-progress">Starting sequential capture...</div>
             <div id="capture-status" style="margin-top: 10px; font-size: 14px;"></div>
             <button id="stop-capture" style="margin-top: 10px; padding: 5px 10px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Stop Capture</button>
         `;
         document.body.appendChild(statusDiv);
         
         // Stop button handler
-        let stopRequested = false;
         document.getElementById('stop-capture').addEventListener('click', () => {
-            stopRequested = true;
-            console.log('⛔ Stop requested by user');
+            sessionStorage.removeItem('claudeAutoCapture');
+            console.log('⛔ Capture stopped by user');
+            window.location.href = 'https://claude.ai/chats';
         });
         
-        // Update progress display
-        function updateProgress(current, total, currentTitle) {
-            const percent = ((current / total) * 100).toFixed(1);
-            document.getElementById('capture-progress').innerHTML = `
-                Progress: ${current}/${total} (${percent}%)<br>
-                Current: ${currentTitle}
-            `;
-            
-            const timeElapsed = (Date.now() - new Date(captureSession.startTime).getTime()) / 1000;
-            const avgTime = timeElapsed / Math.max(current, 1);
-            const timeRemaining = avgTime * (total - current);
-            
-            document.getElementById('capture-status').innerHTML = `
-                Time elapsed: ${Math.floor(timeElapsed / 60)}m ${Math.floor(timeElapsed % 60)}s<br>
-                Est. remaining: ${Math.floor(timeRemaining / 60)}m ${Math.floor(timeRemaining % 60)}s
-            `;
+        // Navigate to first conversation
+        if (conversationLinks.length > 0) {
+            console.log(`Navigating to first conversation: ${conversationLinks[0].title}`);
+            window.location.href = conversationLinks[0].url;
         }
+    }
+    
+    // Handle being on a conversation page during auto-capture
+    async function handleConversationPage() {
+        const captureState = JSON.parse(sessionStorage.getItem('claudeAutoCapture'));
+        if (!captureState) return false;
         
-        // Process each conversation
-        for (let i = 0; i < conversationLinks.length; i++) {
-            if (stopRequested) {
-                console.log('❌ Capture stopped by user');
-                break;
-            }
-            
-            const conversation = conversationLinks[i];
-            updateProgress(i, conversationLinks.length, conversation.title);
-            
-            console.log(`\n📝 Opening conversation ${i + 1}/${conversationLinks.length}: ${conversation.title}`);
-            
-            // Open in new tab
-            window.open(conversation.url, '_blank');
-            
-            // Update session status
-            captureSession.conversations[i].status = 'opened';
-            captureSession.completed = i + 1;
-            localStorage.setItem('claude_auto_capture_session', JSON.stringify(captureSession));
-            
-            // Wait a bit before opening the next one
-            await new Promise(resolve => setTimeout(resolve, 3000));
-        }
+        console.log('📍 Auto-capture: Processing conversation page');
         
-        // Cleanup
-        document.body.removeChild(statusDiv);
-        localStorage.removeItem('claude_auto_capture_session');
-        
-        console.log('\n🎉 Auto-capture session complete!');
-        console.log(`Opened ${processedCount} conversations for capture`);
-        console.log('Note: Each tab needs to run the scraper manually or via extension');
-        
-        // Show completion message
-        const completionDiv = document.createElement('div');
-        completionDiv.style.cssText = statusDiv.style.cssText;
-        completionDiv.innerHTML = `
-            <h3 style="margin: 0 0 10px 0;">✅ Auto-Capture Complete</h3>
-            <p>Opened ${captureSession.completed} conversations in new tabs.</p>
-            <p style="font-size: 14px; color: #888;">Run the Claude ZIP scraper in each tab to download.</p>
-            <button onclick="this.parentElement.remove()" style="margin-top: 10px; padding: 5px 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+        // Update status display
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'claude-auto-capture-status';
+        statusDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-family: system-ui;
+            min-width: 300px;
         `;
-        document.body.appendChild(completionDiv);
+        
+        const current = captureState.currentIndex + 1;
+        const total = captureState.conversations.length;
+        const currentConv = captureState.conversations[captureState.currentIndex];
+        
+        statusDiv.innerHTML = `
+            <h3 style="margin: 0 0 10px 0;">🤖 Claude Auto-Capture</h3>
+            <div>Processing: ${current}/${total}</div>
+            <div style="font-size: 14px; margin-top: 5px;">${currentConv.title}</div>
+            <div style="margin-top: 10px; font-size: 12px;">Downloading conversation + artifacts...</div>
+        `;
+        document.body.appendChild(statusDiv);
+        
+        // Wait for page to fully load
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Inject and run the single conversation scraper
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('scripts/claude-scraper-single.js');
+        document.head.appendChild(script);
+        
+        // Wait for download to complete
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Update state
+        captureState.currentIndex++;
+        captureState.results.push({
+            ...currentConv,
+            status: 'completed',
+            timestamp: new Date().toISOString()
+        });
+        
+        // Check if more conversations to process
+        if (captureState.currentIndex < captureState.conversations.length) {
+            // Save state and navigate to next
+            sessionStorage.setItem('claudeAutoCapture', JSON.stringify(captureState));
+            const nextConv = captureState.conversations[captureState.currentIndex];
+            console.log(`Navigating to next conversation: ${nextConv.title}`);
+            window.location.href = nextConv.url;
+        } else {
+            // All done!
+            console.log('✅ All conversations processed!');
+            sessionStorage.removeItem('claudeAutoCapture');
+            
+            // Show completion
+            statusDiv.innerHTML = `
+                <h3 style="margin: 0 0 10px 0;">✅ Auto-Capture Complete!</h3>
+                <div>Processed: ${total} conversations</div>
+                <div style="margin-top: 10px; font-size: 14px;">Check your downloads folder</div>
+                <button onclick="window.location.href='https://claude.ai/chats'" style="margin-top: 10px; padding: 5px 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Back to Chats</button>
+            `;
+        }
+        
+        return true;
     }
     
     // Main execution
     async function main() {
         try {
-            // Check if we're on the main Claude page or a conversation page
+            // Check if we're on a conversation page during auto-capture
             if (window.location.pathname.includes('/chat/')) {
+                const isAutoCapturing = await handleConversationPage();
+                if (isAutoCapturing) return;
+                
                 console.log('📍 Currently on a conversation page');
                 console.log('Please navigate to the main Claude page (https://claude.ai/) to capture all conversations');
                 return;

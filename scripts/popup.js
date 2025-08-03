@@ -124,32 +124,16 @@ async function scrapeConversation(autoScroll = false) {
         updateStatus('Auto-capture started! Check new tabs.', 'success');
         resultsEl.style.display = 'none';
       } else {
-        // Use Claude scraper with ZIP support for single conversation
-        updateStatus('Using Claude ZIP scraper...', 'scraping');
-        
-        // Get the selected format
-        const format = document.querySelector('input[name="format"]:checked').value;
-        
-        // First inject the script, then send a message with the format
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: (selectedFormat) => {
-            window.__AI_CHRONICLE_FORMAT__ = selectedFormat;
-          },
-          args: [format]
-        });
-        
-        // Now inject and execute the Claude exact v3 scraper
-        const scraperFile = 'scripts/claude-scraper-exact-v3.js';
-        console.log(`Using scraper: ${scraperFile}`);
+        // Use Claude single conversation scraper with artifacts
+        updateStatus('Capturing Claude conversation with artifacts...', 'scraping');
         
         const [result] = await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: [scraperFile]
+          files: ['scripts/claude-scraper-main.js']
         });
         
-        // Claude ZIP scraper auto-downloads, so just show success
-        updateStatus('Capture complete! Check your downloads for ZIP file.', 'success');
+        // Claude scraper auto-downloads conversation + artifacts
+        updateStatus('Capture complete! Check downloads for conversation + artifacts.', 'success');
         resultsEl.style.display = 'none';
       }
       
