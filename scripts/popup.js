@@ -139,8 +139,8 @@ async function scrapeConversation(autoScroll = false) {
           args: [format]
         });
         
-        // Now inject and execute the Claude scraper v3
-        const scraperFile = 'scripts/claude-scraper-v3.js';
+        // Now inject and execute the Claude exact v3 scraper
+        const scraperFile = 'scripts/claude-scraper-exact-v3.js';
         console.log(`Using scraper: ${scraperFile}`);
         
         const [result] = await chrome.scripting.executeScript({
